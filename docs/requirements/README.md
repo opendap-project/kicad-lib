@@ -7,5 +7,5 @@
 
 ## Context
 
-- Repository layout, consumption as a pinned submodule and STEP-as-source follow the benchmark in [`toolkit/docs/research/2026-10-open-hardware-repo-benchmark.md`](https://github.com/opendap-project/toolkit/blob/main/docs/research/2026-10-open-hardware-repo-benchmark.md).
+- Repository layout, consumption as a pinned submodule and STEP-as-source follow the benchmark in [`toolkit/hardware/docs/research/2026-10-open-hardware-repo-benchmark.md`](https://github.com/opendap-project/toolkit-hardware/blob/main/docs/research/2026-10-open-hardware-repo-benchmark.md).
 - The main board is likely to need HDI rules and the flat cables flex (or rigid-flex) rules for PCBWay. No public rule set covers these; they will be written from PCBWay's published capabilities.
