@@ -3,7 +3,7 @@
 | ID | Requirement | Priority | Status |
 |---|---|---|---|
 | KLIB-001 | OpenDAP shall maintain its own KiCad parts library, shared by every OpenDAP hardware project. | must | Confirmed |
-| KLIB-002 | The library shall include design rules, each with a test board that triggers every rule, for every fab process OpenDAP boards use. | must | Draft |
+| KLIB-002 | The library shall include design rules, each with a test board that triggers every rule, for every fab process OpenDAP boards use. | should | Draft |
 
 ## Context
 
