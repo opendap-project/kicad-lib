@@ -1,0 +1,25 @@
+# KiCad Library
+
+OpenDAP's own KiCad library: symbols, footprints, 3D models and fab design rules, shared by every OpenDAP hardware project.
+
+## Layout
+
+- `symbols/` — symbol libraries (`*.kicad_sym`)
+- `footprints/` — footprint libraries (`<name>.pretty/`)
+- `3dmodels/` — 3D models. STEP is the source for each part; other formats are generated from it.
+- `design-rules/` — fab design rules (`.kicad_dru`)
+- `docs/`
+
+## Use
+
+OpenDAP repositories add this library as a git submodule at `hardware/lib/opendap`, pinned to a tag, and reference it from their library tables with `${KIPRJMOD}/../lib/opendap/…`.
+
+## License
+
+This repository follows the [REUSE](https://reuse.software) layout: license texts live in `LICENSES/` and `REUSE.toml` maps each path to its license.
+
+- Default: **CERN Open Hardware Licence v2 – Weakly Reciprocal** (`CERN-OHL-W-2.0`)
+- Markdown files: **Creative Commons Attribution-ShareAlike 4.0** (`CC-BY-SA-4.0`)
+- `design-rules/vendor/kicad-druid/`: **MIT** (`MIT`), © 2023 Cimos, vendored unmodified
+
+Copyright © 2026 The OpenDAP Project.
