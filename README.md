@@ -7,7 +7,7 @@ OpenDAP's own KiCad library: symbols, footprints, 3D models and fab design rules
 - `symbols/` — symbol libraries (`*.kicad_sym`)
 - `footprints/` — footprint libraries (`<name>.pretty/`)
 - `3dmodels/` — 3D models. STEP is the source for each part; other formats are generated from it.
-- `design-rules/` — fab design rules (`.kicad_dru`)
+- `design-rules/` — fab design rules (`.kicad_dru`) with their test boards
 - `docs/`
 
 ## Use
@@ -20,6 +20,7 @@ This repository follows the [REUSE](https://reuse.software) layout: license text
 
 - Default: **CERN Open Hardware Licence v2 – Weakly Reciprocal** (`CERN-OHL-W-2.0`)
 - Markdown files: **Creative Commons Attribution-ShareAlike 4.0** (`CC-BY-SA-4.0`)
+- Python scripts (design-rule test tooling): **GNU General Public License v3.0 or later** (`GPL-3.0-or-later`)
 - `design-rules/vendor/kicad-druid/`: **MIT** (`MIT`), © 2023 Cimos, vendored unmodified
 
 Copyright © 2026 The OpenDAP Project.

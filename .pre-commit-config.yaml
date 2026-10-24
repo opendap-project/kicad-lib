@@ -19,9 +19,9 @@ repos:
     hooks:
       - id: no-stray-files
       - id: kicad-erc
-        exclude: ^design-rules/vendor/  # upstream pass/fail test boards fail by design
+        exclude: ^design-rules/(vendor/|[^/]+/test/)  # rule-set test boards fail by design
       - id: kicad-drc
-        exclude: ^design-rules/vendor/
+        exclude: ^design-rules/(vendor/|[^/]+/test/)
       - id: no-fab-outputs
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.24.0
