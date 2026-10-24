@@ -8,7 +8,11 @@ OpenDAP's own KiCad library: symbols, footprints, 3D models and fab design rules
 - `footprints/` — footprint libraries (`<name>.pretty/`)
 - `3dmodels/` — 3D models. STEP is the source for each part; other formats are generated from it.
 - `design-rules/` — fab design rules and the craft rules (`.kicad_dru`) with their test boards
-- `docs/` — requirements, research and the [PCB craft standard](docs/specs/pcb-craft-standard.md)
+- `drawing-sheets/` — the OpenDAP drawing sheet (`.kicad_wks`)
+- `colour-themes/` — the OpenDAP schematic colour theme
+- `templates/` — the feature-block sheet template and the generator of the schematic files ([README](templates/README.md))
+- `examples/` — an example project that passes every schematic check
+- `docs/` — requirements, research and the [PCB craft standard](docs/specs/pcb-craft-standard.md) (layout, schematics and symbols)
 
 ## Use
 
