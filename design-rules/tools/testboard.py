@@ -138,6 +138,7 @@ class TestBoard:
         self._nets = 0
         self._refs = 0
         self._cutouts = []
+        self._net_classes = []
         self._label(FAIL_X, TOP - 4.0, "FAIL", 1.0)
         self._label(PASS_X, TOP - 4.0, "PASS", 1.0)
 
@@ -147,9 +148,9 @@ class TestBoard:
             raise KeyError(f"rule '{name}' is not in the rule set")
         return self.rules[name]
 
-    def _net(self):
+    def _net(self, prefix="N"):
         self._nets += 1
-        net = pcbnew.NETINFO_ITEM(self.board, f"N{self._nets}")
+        net = pcbnew.NETINFO_ITEM(self.board, f"{prefix}{self._nets}")
         self.board.Add(net)
         return net
 
@@ -225,26 +226,62 @@ class TestBoard:
         self.board.Add(v)
         return v
 
-    def _text(self, x, y, layer, height, thickness, text="Ab"):
+    def _text(self, x, y, layer, height, thickness, text="Ab", width=None,
+              angle=0.0, italic=False, mirrored=False):
         t = pcbnew.PCB_TEXT(self.board)
         t.SetText(text)
         t.SetLayer(layer)
-        t.SetTextSize(pcbnew.VECTOR2I(mm(height), mm(height)))
+        t.SetTextSize(pcbnew.VECTOR2I(mm(width if width is not None else height), mm(height)))
         t.SetTextThickness(mm(thickness))
         t.SetHorizJustify(pcbnew.GR_TEXT_H_ALIGN_LEFT)
+        t.SetTextAngleDegrees(angle)
+        t.SetItalic(italic)
+        t.SetMirrored(mirrored)
         t.SetPosition(pt(x, y))
         self.board.Add(t)
+        return t
 
-    def _row(self, label, builder, expect_rule=None, expect_check=None):
+    def _silk_line(self, x1, y1, x2, y2, width, layer=None):
+        s = pcbnew.PCB_SHAPE(self.board)
+        s.SetShape(pcbnew.SHAPE_T_SEGMENT)
+        s.SetStart(pt(x1, y1))
+        s.SetEnd(pt(x2, y2))
+        s.SetWidth(mm(width))
+        s.SetLayer(layer if layer is not None else pcbnew.F_SilkS)
+        self.board.Add(s)
+        return s
+
+    def _rule_area(self, name, x1, y1, x2, y2):
+        """A keepout-free rule area, used only to scope rules by its name."""
+        z = pcbnew.ZONE(self.board)
+        z.SetIsRuleArea(True)
+        z.SetZoneName(name)
+        z.SetLayerSet(pcbnew.LSET.AllCuMask())
+        for allow in ("SetDoNotAllowTracks", "SetDoNotAllowVias", "SetDoNotAllowPads",
+                      "SetDoNotAllowZoneFills", "SetDoNotAllowFootprints"):
+            getattr(z, allow)(False)
+        outline = z.Outline()
+        outline.NewOutline()
+        for x, y in ((x1, y1), (x2, y1), (x2, y2), (x1, y2)):
+            outline.Append(mm(x), mm(y))
+        self.board.Add(z)
+        return z
+
+    def _row(self, label, builder, expect_rule=None, expect_check=None, count=1):
         y = TOP + self.row * ROW_H
         self._label(LABEL_X, y, label)
         builder(FAIL_X, y, True)
         builder(PASS_X, y, False)
         if expect_rule:
-            self.expected_rules[expect_rule] = self.expected_rules.get(expect_rule, 0) + 1
+            self.expected_rules[expect_rule] = self.expected_rules.get(expect_rule, 0) + count
         if expect_check:
-            self.expected_checks[expect_check] = self.expected_checks.get(expect_check, 0) + 1
+            self.expected_checks[expect_check] = self.expected_checks.get(expect_check, 0) + count
         self.row += 1
+
+    def add_row(self, label, builder, expect_rule=None, expect_check=None, count=1):
+        """A free-form row: builder(x, y, fail) draws the failing or the passing
+        object. count is how many violations the failing object raises."""
+        self._row(label, builder, expect_rule, expect_check, count)
 
     @staticmethod
     def _v(limit, fail, kind="min"):
@@ -381,6 +418,10 @@ class TestBoard:
         self._row(label, build, expect_check="solder_mask_bridge")
 
     # output --------------------------------------------------------------
+    def add_net_class(self, name, pattern):
+        """A net class assigned by net-name pattern in the project file."""
+        self._net_classes.append((name, pattern))
+
     def save(self, out_dir: str, ignore_checks=()):
         height = TOP + self.row * ROW_H + 2.0
         self._rect(0, 0, BOARD_W, height)
@@ -417,20 +458,29 @@ class TestBoard:
             "min_microvia_diameter", "min_microvia_drill", "min_silk_clearance",
             "min_text_height", "min_text_thickness", "min_through_hole_diameter",
             "min_track_width", "min_via_annular_width", "min_via_diameter")}
+        def net_class(name, priority):
+            return {
+                "name": name, "priority": priority,
+                "clearance": 0.0, "track_width": 0.0,
+                "via_diameter": 0.4, "via_drill": 0.2,
+                "microvia_diameter": 0.2, "microvia_drill": 0.1,
+                "diff_pair_gap": 0.1, "diff_pair_width": 0.1,
+                "diff_pair_via_gap": 0.1,
+            }
+        net_settings = {"classes": [net_class("Default", 2147483647)],
+                        "meta": {"version": 4}}
+        if self._net_classes:
+            net_settings["classes"] += [net_class(n, i) for i, (n, _) in
+                                        enumerate(self._net_classes)]
+            net_settings["netclass_patterns"] = [
+                {"netclass": n, "pattern": p} for n, p in self._net_classes]
         project = {
             "board": {"design_settings": {
                 "rules": zero,
                 "rule_severities": {c: "ignore" for c in ignore_checks},
             }},
             "meta": {"filename": f"{self.name}.kicad_pro", "version": 3},
-            "net_settings": {"classes": [{
-                "name": "Default", "priority": 2147483647,
-                "clearance": 0.0, "track_width": 0.0,
-                "via_diameter": 0.4, "via_drill": 0.2,
-                "microvia_diameter": 0.2, "microvia_drill": 0.1,
-                "diff_pair_gap": 0.1, "diff_pair_width": 0.1,
-                "diff_pair_via_gap": 0.1,
-            }], "meta": {"version": 4}},
+            "net_settings": net_settings,
         }
         with open(os.path.join(out_dir, f"{self.name}.kicad_pro"), "w",
                   encoding="utf-8") as fh:

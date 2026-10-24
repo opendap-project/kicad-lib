@@ -10,7 +10,9 @@ script) and with the rule names in `<test>.kicad_dru`:
 - every rule in the rules file fires, exactly as often as expected;
 - every Board Setup check listed as expected fires, exactly as often;
 - no other violation and no unconnected item is reported;
-- no violation touches the PASS column.
+- no violation touches the PASS column;
+- a rule whose name carries a quality level (RFC 0010: "[Q0]" to "[Q4]")
+  reports at its severity: error for Q0 and Q1, warning for Q2 to Q4.
 
 A rules file KiCad cannot compile makes kicad-cli report a clean board, so
 "every rule fires" also proves the file compiled.
@@ -81,6 +83,12 @@ def check(pcb: str) -> bool:
         m = re.search(r"\(rule '([^']+)'", v["description"])
         if m and m.group(1) in names:
             fired[m.group(1)] += 1
+            level = re.search(r"\[Q([0-4])\]", m.group(1))
+            if level:
+                want_sev = "error" if int(level.group(1)) <= 1 else "warning"
+                if v["severity"] != want_sev:
+                    problems.append(f"rule '{m.group(1)}' reports as {v['severity']}, "
+                                    f"expected {want_sev} for its level")
         else:
             checks[v["type"]] += 1
         for item in v["items"]:
