@@ -335,10 +335,10 @@ Rules checked partly by a tool and partly by review are listed under the tool.
 - **The OpenDAP mark as a footprint:** kicad-lib has no `OpenDAP_Mark` footprint yet; it is to be generated from the brand's flat SVGs (blackbird-ui `brand/`), with the print minimum sizes, which the brand marks **UNVERIFIED** until a first print run.
 - **Underfill** under the BGAs: a reliability decision after drop testing.
 - **Pick-and-place convention per fab** (CRAFT-15): PCBWay's convention is not recorded in the research (**UNVERIFIED**).
-- **Title-block typeface** (CRAFT-102): IBM Plex Sans in the title block, embedded in the schematic, once KiCad documents that fonts embedded in a schematic serve its drawing sheet. Until then, the stroke font: the maintainers may decide otherwise.
-- **Active-low net names** (CRAFT-84): the suffix `_N` (as the T1 pinout v1) against the overbar `~{}` that 7 of 9 benchmarked projects use. Chosen under delegation; the maintainers may reverse it before any schematic is drawn.
-- **Colour theme** (CRAFT-103): the theme is a user setting in KiCad; each developer installs `colour-themes/opendap.json` into KiCad's `colors` folder. Whether the fab package plots with it is to be decided with `/opendap:fab-package`.
-- **Per-part review tick** (Reform's `Checked` field): not adopted; open.
+- **Title-block typeface** (CRAFT-102): **decided (maintainers, 2026-10-24):** KiCad's stroke font now; IBM Plex Sans at Q4, once KiCad documents that fonts embedded in a schematic serve its drawing sheet.
+- **Active-low net names** (CRAFT-84): **decided (maintainers, 2026-10-24):** net names use the suffix `_N`, as the T1 pinout v1; pin names on symbols keep the overbar `~{}`.
+- **Colour theme** (CRAFT-103): **decided (maintainers, 2026-10-24):** every published plot (fab package, documentation, review PDFs) uses `colour-themes/opendap.json`, so the documents look the same everywhere; developers install it into KiCad's `colors` folder for daily work. The fab-package tool applies it (system plan follow-up).
+- **Per-part review tick** (Reform's `Checked` field): **adopted (maintainers, 2026-10-24) at Q2:** every symbol instance carries a `Checked` field filled with the reviewer and date once the part is checked against its datasheet (application circuit, values, ratings); empty is allowed below Q2, and the schematic craft check reports it by level.
 - **Library symbols:** a first run of the symbol checks on kicad-lib's own libraries (2026-10-24) found pins off the 2.54 mm grid (CRAFT-122), oscillators with prefix `X` (CRAFT-130, KLC uses `Y`) and connectors and SoC units above 64 pins (CRAFT-126); the symbols are being added and are fixed by their authors, not in this change.
 
 ## 13. Sources
