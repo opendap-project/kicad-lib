@@ -258,8 +258,17 @@ def overlaps(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
 
-def pin1_triangle(pads, body):
-    p1s = [p for p in copper(pads) if p["number"] == "1"]
+def pin1_number(part):
+    """Pad that carries the pin-1 mark: [footprint] pin1, else "1", else the first listed pin."""
+    fp = part["footprint"]
+    if fp.get("pin1"):
+        return fp["pin1"]
+    nums = [str(p["number"]) for p in part["pins"]]
+    return "1" if "1" in nums else nums[0]
+
+
+def pin1_triangle(pads, body, first="1"):
+    p1s = [p for p in copper(pads) if p["number"] == first]
     if not p1s:
         return None
     p1 = p1s[0]
@@ -365,7 +374,7 @@ def footprint(part):
     prop = lambda k, v, at, layer, hide=False: S(
         "property", k, v, S("at", num(at[0]), num(at[1]), 0), S("layer", layer),
         *([S("hide", Sym("yes"))] if hide else []), font(1.0, 0.15))
-    tri = pin1_triangle(pads, body) if not mark else triangle(mark["at"], mark["direction"])
+    tri = pin1_triangle(pads, body, pin1_number(part)) if not mark else triangle(mark["at"], mark["direction"])
     top = min([crt[1]] + ([pt[1] for pt in tri] if tri else []))
     bot = max([crt[3]] + ([pt[1] for pt in tri] if tri else []))
     n.append(prop("Reference", "REF**", (0, round(top - 0.7, 2)), "F.SilkS"))

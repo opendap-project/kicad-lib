@@ -42,6 +42,9 @@ def build_one(path):
     with open(out) as fh:
         text = fh.read()
     text = re.sub(r"FILE_NAME\('[^']*','[^']*'", "FILE_NAME('%s','%s'" % (m["name"] + ".step", STAMP), text, count=1)
+    # the translator names the product with a per-session counter: name it after the footprint
+    text = re.sub(r"PRODUCT\('Open CASCADE STEP translator[^']*',\s*'Open CASCADE STEP translator[^']*'",
+                  "PRODUCT('%s','%s'" % (m["name"], m["name"]), text)
     with open(out, "w") as fh:
         fh.write(text)
     return out

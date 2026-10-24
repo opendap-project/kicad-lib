@@ -198,22 +198,25 @@ def sheet_pins(path, header=None):
         head = [h.lower().replace("*", "") for h in t[0]]
         if header and header.lower() not in " | ".join(head):
             continue
-        pc = next((i for i, h in enumerate(head) if re.fullmatch(r"(pin|pins|pin\(s\)|pin no\.?|no\.?|ball|contact|terminal|pad)s?", h)), None)
-        nc = next((i for i, h in enumerate(head) if re.search(r"name|signal", h)), None)
-        if nc is None:
-            nc = next((i for i, h in enumerate(head) if h == "function"), None)
-        if pc is None or nc is None:
+        pcs = [i for i, h in enumerate(head) if re.fullmatch(r"(pin|pins|pin\(s\)|pin no\.?|no\.?|ball|contact|terminal|pad)s?", h)]
+        ncs = [i for i, h in enumerate(head) if re.search(r"name|signal", h)]
+        if not ncs:
+            ncs = [i for i, h in enumerate(head) if h == "function"]
+        if not pcs or not ncs:
             continue
+        # a table may carry several pin/name column pairs side by side (USB-C rows A and B)
+        pairs = [(pc, min([n for n in ncs if n > pc] or ncs)) for pc in pcs]
         out = {}
         for row in t[2:]:
-            if len(row) <= max(pc, nc):
-                continue
-            nums = expand_numbers(row[pc])
-            cell = row[nc].replace("**", "").replace("`", "").strip()
-            names = expand_names(cell)
-            if len(names) != len(nums):
-                names = [cell] * len(nums)
-            out.update(zip(nums, names))
+            for pc, nc in pairs:
+                if len(row) <= max(pc, nc):
+                    continue
+                nums = expand_numbers(row[pc])
+                cell = row[nc].replace("**", "").replace("`", "").strip()
+                names = expand_names(cell)
+                if len(names) != len(nums):
+                    names = [cell] * len(nums)
+                out.update(zip(nums, names))
         return out
     # no table: an inline list in the pinout section, "pin 1 EN, 2 PG, 3 FB"
     text = "\n".join(lines)
@@ -221,14 +224,14 @@ def sheet_pins(path, header=None):
     m = sec and re.search(r"pin (\d+ [^\s,;()]+(?:, \d+ [^\s,;()]+)+)", sec.group(0))
     if m:
         return dict(item.split(" ", 1) for item in m.group(1).split(", "))
-    hashed = sec and re.findall(r"#(\d+) ([^,;()]+?)(?=, #|\s*\(|;|$)", sec.group(0), re.M)
+    hashed = sec and re.findall(r"#(\d+) ([^,;()]+?)(?=,|\s*\(|;|$)", sec.group(0), re.M)
     if hashed:
         return {n: name.strip() for n, name in hashed}
     return None
 
 
 def norm(s):
-    return re.sub(r"\s+", "", s.replace("~{", "").replace("}", "")).upper()
+    return re.sub(r"\s+", "", s.replace("~{", "").replace("}", "").replace("−", "-")).upper()
 
 
 # ---------------------------------------------------------------- tests
@@ -305,7 +308,9 @@ class Symbols(unittest.TestCase):
                     continue  # the sheet has no pin table; the reason is recorded in the data
                 table = sheet_pins(os.path.join(base, pt["sheet"]), pt.get("sheet_pin_table"))
                 self.assertIsNotNone(table, "no pin table in %s" % pt["sheet"])
-                mine = {p.get("sheet_number", p["number"]): p.get("sheet_name", p["name"]) for p in part["pins"]}
+                # pins the sheet does not list (switch and shell terminals) carry not_in_sheet with the reason
+                mine = {p.get("sheet_number", p["number"]): p.get("sheet_name", p["name"])
+                        for p in part["pins"] if not p.get("not_in_sheet")}
                 self.assertEqual(sorted(mine), sorted(table), "pin numbers differ from %s" % pt["sheet"])
                 for n, name in mine.items():
                     self.assertEqual(norm(name), norm(table[n]), "pin %s" % n)
@@ -387,7 +392,8 @@ class Footprints(unittest.TestCase):
                         self.assertGreaterEqual(seg_rect_dist(a, b, rect_of(p)) - w / 2, 0.15 - EPS, "silk near pad %s" % p["number"])
                 # pin-1 mark (CRAFT-13): a filled silk polygon, outside the body, nearest to pad 1
                 marks = [pl for pl in find(n, "fp_poly") if one(pl, "layer")[1] == "F.SilkS" and one(pl, "fill")[1] == "yes"]
-                if any(p["number"] == "1" for p in lands):
+                first = kigen.pin1_number(part)
+                if any(p["number"] == first for p in lands):
                     self.assertTrue(marks, "no pin-1 mark")
                     pts = [(float(x[1]), float(x[2])) for x in find(one(marks[0], "pts"), "xy")]
                     cx, cy = sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts)
@@ -399,7 +405,7 @@ class Footprints(unittest.TestCase):
                         return math.hypot(max(r[0] - cx, 0, cx - r[2]), max(r[1] - cy, 0, cy - r[3]))
                     near = min(numbered, key=gap)
                     if not part["footprint"].get("pin1_mark"):
-                        self.assertEqual(near["number"], "1", "pin-1 mark nearest to pad %s" % near["number"])
+                        self.assertEqual(near["number"], first, "pin-1 mark nearest to pad %s" % near["number"])
                     for p in lands:
                         r = rect_of(p, 0.15)
                         self.assertFalse(any(r[0] < x < r[2] and r[1] < y < r[3] for x, y in pts), "pin-1 mark near pad %s" % p["number"])
