@@ -12,7 +12,9 @@ script) and with the rule names in `<test>.kicad_dru`:
 - no other violation and no unconnected item is reported;
 - no violation touches the PASS column;
 - a rule whose name carries a quality level (RFC 0010: "[Q0]" to "[Q4]")
-  reports at its severity: error for Q0 and Q1, warning for Q2 to Q4.
+  reports at its severity: error for Q0 and Q1, warning for Q2 to Q4; a
+  Q0 or Q1 rule whose own comment block (the comment lines right above it)
+  says UNVERIFIED reports as a warning until its value is confirmed.
 
 A rules file KiCad cannot compile makes kicad-cli report a clean board, so
 "every rule fires" also proves the file compiled.
@@ -54,6 +56,21 @@ def rule_names(dru: str) -> list:
     return names
 
 
+def unverified_rules(dru: str) -> set:
+    """Rules whose comment block right above them says UNVERIFIED."""
+    out, comment = set(), []
+    with open(dru, encoding="utf-8") as fh:
+        for line in fh:
+            if line.lstrip().startswith("#"):
+                comment.append(line)
+                continue
+            m = re.match(r'\s*\(rule\s+"([^"]+)"', line)
+            if m and any("UNVERIFIED" in c for c in comment):
+                out.add(m.group(1))
+            comment = []
+    return out
+
+
 def run_drc(pcb: str) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         out = os.path.join(tmp, "drc.json")
@@ -75,6 +92,7 @@ def check(pcb: str) -> bool:
     with open(expected_path, encoding="utf-8") as fh:
         expected = json.load(fh)
     names = rule_names(dru)
+    unverified = unverified_rules(dru)
     report = run_drc(pcb)
 
     fired, checks, problems = Counter(), Counter(), []
@@ -85,10 +103,12 @@ def check(pcb: str) -> bool:
             fired[m.group(1)] += 1
             level = re.search(r"\[Q([0-4])\]", m.group(1))
             if level:
-                want_sev = "error" if int(level.group(1)) <= 1 else "warning"
+                strict = int(level.group(1)) <= 1 and m.group(1) not in unverified
+                want_sev = "error" if strict else "warning"
                 if v["severity"] != want_sev:
+                    why = "its level" if m.group(1) not in unverified else "an UNVERIFIED value"
                     problems.append(f"rule '{m.group(1)}' reports as {v['severity']}, "
-                                    f"expected {want_sev} for its level")
+                                    f"expected {want_sev} for {why}")
         else:
             checks[v["type"]] += 1
         for item in v["items"]:
